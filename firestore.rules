@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: sessions
+    // Document ID: {pin} (6-digit string)
+    // Fields:
+    //   - pin: string (required)
+    //   - status: string (required, enum: ['waiting', 'playing', 'finished'])
+    //   - currentQuestionIndex: number (required)
+    //   - hostId: string (required, UID of the host)
+    //   - quiz: map (required, contains questions)
+    //   - players: map (required, map of UIDs to {name, score, lastAnswer})
+    //   - createdAt: string (optional, ISO date)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isHost(sessionData) {
+      return isAuthenticated() && request.auth.uid == sessionData.hostId;
+    }
+
+    function isValidSession(data) {
+      return data.pin is string && data.pin.size() == 6 &&
+             data.status in ['waiting', 'playing', 'finished'] &&
+             data.currentQuestionIndex is number &&
+             data.hostId is string &&
+             data.quiz is map &&
+             data.players is map;
+    }
+
+    match /sessions/{pin} {
+      // Anyone authenticated can read a session (to join or watch)
+      allow read: if isAuthenticated();
+      
+      // Only authenticated users can create a session, and they must be the host
+      allow create: if isAuthenticated() && 
+                    isValidSession(request.resource.data) &&
+                    request.resource.data.hostId == request.auth.uid;
+      
+      // Update rules:
+      // 1. Host can update anything (status, question index, etc.)
+      // 2. Players can ONLY update their own entry in the 'players' map
+      allow update: if isAuthenticated() && (
+        // Host update
+        isHost(resource.data) || 
+        // Player update: Ensure they only change their own player data and nothing else
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['players']) &&
+          request.resource.data.players.keys().hasAll(resource.data.players.keys()) &&
+          // Check that only the current user's player data was modified
+          request.resource.data.players[request.auth.uid] != resource.data.players[request.auth.uid]
+        )
+      );
+
+      // Only host can delete
+      allow delete: if isHost(resource.data);
+    }
+  }
+}

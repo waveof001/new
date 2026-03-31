@@ -1,0 +1,5 @@
+{
+  "name": "QuizLive - 실시간 원격 퀴즈",
+  "description": "교사와 학생이 실시간으로 소통하며 즐기는 원격 퀴즈 플랫폼입니다. 카훗(Kahoot) 스타일의 게임 플레이를 지원합니다.",
+  "requestFramePermissions": []
+}

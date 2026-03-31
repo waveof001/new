@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "Session": {
+      "title": "Quiz Session",
+      "description": "A real-time quiz session containing game state and player data.",
+      "type": "object",
+      "properties": {
+        "pin": { "type": "string", "description": "6-digit PIN for the session." },
+        "status": { "type": "string", "enum": ["waiting", "playing", "finished"], "description": "Current status of the game." },
+        "currentQuestionIndex": { "type": "integer", "description": "Index of the current question being played." },
+        "hostId": { "type": "string", "description": "UID of the teacher/host." },
+        "quiz": { "type": "object", "description": "The quiz data including questions." },
+        "players": { "type": "object", "description": "Map of player UIDs to player data (name, score, lastAnswer)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the session was created." }
+      },
+      "required": ["pin", "status", "currentQuestionIndex", "hostId", "quiz", "players"]
+    }
+  },
+  "firestore": {
+    "/sessions/{pin}": {
+      "schema": "Session",
+      "description": "Collection of active quiz sessions indexed by PIN."
+    }
+  }
+}
